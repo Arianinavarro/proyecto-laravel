@@ -1,51 +1,42 @@
-# Usar imagen oficial de PHP con Apache
 FROM php:8.2-apache
 
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    libzip-dev \
+    unzip \
     git \
     curl \
     libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    libpq-dev \
-    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+    libjpeg-dev \
+    libfreetype6-dev \
+    nodejs \
+    npm
 
-# Habilitar mod_rewrite de Apache
+# Instalar extensiones de PHP
+RUN docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath gd
+
+# Habilitar mod_rewrite
 RUN a2enmod rewrite
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Establecer directorio de trabajo
-WORKDIR /var/www/html
+# Configurar Apache
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 
-# Copiar archivos del proyecto
-COPY . .
+# Copiar código
+COPY . /var/www/html
 
-# Copiar configuración de Apache personalizada
-COPY .htaccess /var/www/html/public/.htaccess
+# Instalar dependencias de Composer
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts || true
 
-# Configurar Apache para apuntar a public/
-RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+# Instalar dependencias de Node y compilar assets
+RUN cd /var/www/html && npm install && npm run build
 
-# Configurar permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+# Permisos
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Instalar dependencias PHP
-RUN composer install --no-dev --optimize-autoloader
-
-# Configurar Laravel
-RUN php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
-
-# Exponer puerto
-EXPOSE 10000
-
-# Comando de inicio
-CMD php artisan serve --host=0.0.0.0 --port=10000
+EXPOSE 80
