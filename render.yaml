@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: proyecto-laravel
+    runtime: image
+    repo: https://github.com/Arianinavarro/proyecto-laravel
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        value: base64:WujOUs9SLrmKX31fEZ0kQXZBnb9KpUH4wOWXTLClHGw=
+      - key: APP_URL
+        value: https://proyecto-laravel.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: database
